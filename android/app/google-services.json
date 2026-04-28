@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "162815122637",
+    "project_id": "etkinlik-app-60af8",
+    "storage_bucket": "etkinlik-app-60af8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:162815122637:android:f5323af3c7f1b4da9c9d84",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_etkinlik_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA97ByumpAhVGz0klZfg3UpkbSubGlsOSQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
