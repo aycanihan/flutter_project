@@ -128,6 +128,15 @@ class _NavItem extends StatelessWidget {
 // ── ROUTER ──
 final _router = GoRouter(
   initialLocation: '/login',
+  redirect: (context, state) {
+    final user = FirebaseAuth.instance.currentUser;
+    final isLoggedIn = user != null;
+    final isLoggingIn = state.uri.toString() == '/login' || state.uri.toString() == '/register';
+
+    if (isLoggedIn && isLoggingIn) return '/discover';
+    if (!isLoggedIn && !isLoggingIn) return '/login';
+    return null;
+  },
   routes: [
     GoRoute(
       path: '/login',
