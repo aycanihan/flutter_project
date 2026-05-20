@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'firebase_options.dart';
+import 'package:etkinlik_app/features/discover/screens/discover_screen.dart';
 
 // ── COLORS ──
 class AppColors {
@@ -24,306 +25,6 @@ class AppColors {
 }
 
 // ── SCREENS ──
-class DiscoverScreen extends StatefulWidget {
-  const DiscoverScreen({super.key});
-  @override
-  State<DiscoverScreen> createState() => _DiscoverScreenState();
-}
-
-class _DiscoverScreenState extends State<DiscoverScreen> {
-  String _selectedCategory = 'Tümü';
-  final List<String> _categories = ['Tümü', 'Rock', 'Pop', 'Hip-Hop', 'Metal', 'EDM', 'Alternative', 'Electronic', 'R&B', 'Klasik', 'Indie', 'Psychedelic', 'Trip-Hop'];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
-      body: Stack(
-        children: [
-          // Gradient arka plan
-          Positioned(top: -80, left: -60, child: Container(width: 280, height: 280, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [AppColors.purple.withOpacity(0.5), Colors.transparent])))),
-          Positioned(top: 40, right: -60, child: Container(width: 220, height: 220, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [AppColors.pink.withOpacity(0.4), Colors.transparent])))),
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Merhaba 👋', style: TextStyle(fontSize: 13, color: AppColors.textTertiary)),
-                          const SizedBox(height: 2),
-                          Text(
-                            FirebaseAuth.instance.currentUser?.displayName?.split(' ').first ?? 'Kullanıcı',
-                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(colors: [AppColors.purple, AppColors.pink]),
-                        ),
-                        child: Center(
-                          child: Text(
-                            (FirebaseAuth.instance.currentUser?.displayName ?? 'U')[0].toUpperCase(),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Arama
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.bgCard,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.borderSubtle),
-                    ),
-                    child: const TextField(
-                      style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'Etkinlik, sanatçı, mekan ara...',
-                        hintStyle: TextStyle(color: AppColors.textTertiary, fontSize: 13),
-                        prefixIcon: Icon(Icons.search_rounded, color: AppColors.textTertiary, size: 20),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                // Kategoriler
-                SizedBox(
-                  height: 34,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _categories.length,
-                    itemBuilder: (context, index) {
-                      final cat = _categories[index];
-                      final isSelected = cat == _selectedCategory;
-                      return GestureDetector(
-                        onTap: () => setState(() => _selectedCategory = cat),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            gradient: isSelected ? const LinearGradient(colors: [AppColors.purple, AppColors.pink]) : null,
-                            color: isSelected ? null : AppColors.bgCard,
-                            border: Border.all(color: isSelected ? Colors.transparent : AppColors.borderSubtle),
-                          ),
-                          child: Text(cat, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? Colors.white : AppColors.textTertiary)),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Etkinlik listesi
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: _selectedCategory == 'Tümü'
-                        ? FirebaseFirestore.instance.collection('events').snapshots()
-                        : FirebaseFirestore.instance.collection('events').where('category', isEqualTo: _selectedCategory).snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator(color: AppColors.purple));
-                      }
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(child: Text('Etkinlik bulunamadı', style: TextStyle(color: AppColors.textTertiary)));
-                      }
-                      final events = snapshot.data!.docs;
-                      final featured = events.where((e) => (e.data() as Map)['isFeatured'] == true).toList();
-                      final regular = events.where((e) => (e.data() as Map)['isFeatured'] != true).toList();
-
-                      return ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                        children: [
-                          if (featured.isNotEmpty) ...[
-                            const Text('ÖNE ÇIKAN', style: TextStyle(fontSize: 11, color: AppColors.textTertiary, fontWeight: FontWeight.w700, letterSpacing: 0.1)),
-                            const SizedBox(height: 10),
-                            ...featured.map((e) => _buildFeaturedCard(e)),
-                            const SizedBox(height: 20),
-                          ],
-                          if (regular.isNotEmpty) ...[
-                            const Text('YAKINDA', style: TextStyle(fontSize: 11, color: AppColors.textTertiary, fontWeight: FontWeight.w700, letterSpacing: 0.1)),
-                            const SizedBox(height: 10),
-                            ...regular.map((e) => _buildRegularCard(e)),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeaturedCard(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return GestureDetector(
-      onTap: () => context.go('/event/${doc.id}'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        height: 160,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.purple.withOpacity(0.8), AppColors.pink.withOpacity(0.8)],
-          ),
-          border: Border.all(color: AppColors.borderLight),
-        ),
-        child: Stack(
-          children: [
-            // Grid doku
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                image: const DecorationImage(
-                  image: NetworkImage('https://picsum.photos/seed/bg/400/200'),
-                  fit: BoxFit.cover,
-                  opacity: 0.15,
-                ),
-              ),
-            ),
-            // Gradient overlay
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.2)),
-                        ),
-                        child: Text(data['category'] ?? '', style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), borderRadius: BorderRadius.circular(10)),
-                        child: Text('₺${data['price']}+', style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700)),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(data['title'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3)),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.calendar_today_rounded, size: 12, color: Colors.white70),
-                          const SizedBox(width: 4),
-                          Text(data['date'] ?? '', style: const TextStyle(fontSize: 12, color: Colors.white70)),
-                          const SizedBox(width: 10),
-                          const Icon(Icons.location_on_rounded, size: 12, color: Colors.white70),
-                          const SizedBox(width: 4),
-                          Expanded(child: Text(data['venue'] ?? '', style: const TextStyle(fontSize: 12, color: Colors.white70), overflow: TextOverflow.ellipsis)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRegularCard(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return GestureDetector(
-      onTap: () => context.go('/event/${doc.id}'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderSubtle),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 56, height: 56,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [AppColors.purple.withOpacity(0.6), AppColors.pink.withOpacity(0.6)],
-                ),
-              ),
-              child: Center(child: Text(data['title'][0], style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white))),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(data['title'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                  const SizedBox(height: 3),
-                  Text('${data['date']} · ${data['venue']}', style: const TextStyle(fontSize: 11, color: AppColors.textTertiary), overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: AppColors.purple.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                    child: Text(data['category'] ?? '', style: const TextStyle(fontSize: 10, color: AppColors.purpleLight, fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text('₺${data['price']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.purpleLight)),
-                const SizedBox(height: 4),
-                const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppColors.textTertiary),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class TicketsScreen extends StatefulWidget {
   const TicketsScreen({super.key});
   @override
@@ -365,7 +66,10 @@ class _TicketsScreenState extends State<TicketsScreen> {
                         children: [
                           const Text('Biletlerim', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5)),
                           StreamBuilder<QuerySnapshot>(
-                            stream: FirebaseFirestore.instance.collection('tickets').snapshots(),
+                            stream: FirebaseFirestore.instance
+                                  .collection('tickets')
+                                  .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid ?? '')
+                                  .snapshots(),
                             builder: (context, snapshot) {
                               final count = snapshot.data?.docs.length ?? 0;
                               return Container(
@@ -385,6 +89,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                       child: StreamBuilder<QuerySnapshot>(
                               stream: FirebaseFirestore.instance
                                   .collection('tickets')
+                                  .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid ?? '')
                                   .snapshots(),
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -650,7 +355,10 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 28),
                       // İstatistikler
                       StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance.collection('tickets').snapshots(),
+                        stream: FirebaseFirestore.instance
+                                  .collection('tickets')
+                                  .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid ?? '')
+                                  .snapshots(),
                         builder: (context, snapshot) {
                           final ticketCount = snapshot.data?.docs.length ?? 0;
                           final totalSpent = snapshot.data?.docs.fold<double>(0, (sum, doc) {
@@ -672,6 +380,8 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 24),
                       // Menü öğeleri
                       _buildMenuItem(Icons.confirmation_number_outlined, 'Biletlerim', 'Satın aldığın biletler', () => context.go('/tickets')),
+                      const SizedBox(height: 10),
+                      _buildMenuItem(Icons.add_circle_outline_rounded, 'Etkinlik Oluştur', 'Yeni etkinlik yayınla', () => context.go('/organizer')),
                       const SizedBox(height: 10),
                       _buildMenuItem(Icons.history_rounded, 'İşlem Geçmişi', 'Tüm aktiviteler', () {}),
                       const SizedBox(height: 10),
@@ -859,6 +569,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/buy/:id',
       builder: (context, state) => BuyTicketScreen(eventId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/organizer',
+      builder: (context, state) => const OrganizerScreen(),
     ),
     ShellRoute(
       builder: (context, state, child) => MainShell(child: child),
@@ -1492,6 +1206,252 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
           ),
         );
         context.go('/tickets');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hata: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+}
+
+// ── ORGANIZER SCREEN ──
+class OrganizerScreen extends StatefulWidget {
+  const OrganizerScreen({super.key});
+  @override
+  State<OrganizerScreen> createState() => _OrganizerScreenState();
+}
+
+class _OrganizerScreenState extends State<OrganizerScreen> {
+  final _titleController = TextEditingController();
+  final _descController = TextEditingController();
+  final _venueController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _dateController = TextEditingController();
+  final _timeController = TextEditingController();
+  String _selectedCategory = 'Konser';
+  bool _isFeatured = false;
+  bool _isLoading = false;
+
+  final List<String> _categories = ['Rock', 'Pop', 'Hip-Hop', 'Metal', 'EDM', 'Alternative', 'Electronic', 'R&B', 'Klasik', 'Indie', 'Psychedelic', 'Konser', 'Festival'];
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    _venueController.dispose();
+    _cityController.dispose();
+    _priceController.dispose();
+    _dateController.dispose();
+    _timeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bgPrimary,
+      body: Stack(
+        children: [
+          Positioned(top: -60, right: -40, child: Container(width: 200, height: 200, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [AppColors.purple.withOpacity(0.4), Colors.transparent])))),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => context.go('/discover'),
+                        child: Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(color: AppColors.bgCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderSubtle)),
+                          child: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary, size: 20),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Etkinlik Oluştur', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.3)),
+                          Text('Yeni etkinlik ekle', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTextField(_titleController, 'Etkinlik Adı', Icons.event_rounded),
+                        const SizedBox(height: 12),
+                        _buildTextField(_descController, 'Açıklama', Icons.description_outlined, maxLines: 3),
+                        const SizedBox(height: 12),
+                        const Text('KATEGORİ', style: TextStyle(fontSize: 11, color: AppColors.textTertiary, fontWeight: FontWeight.w700, letterSpacing: 0.1)),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 36,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _categories.length,
+                            itemBuilder: (context, index) {
+                              final cat = _categories[index];
+                              final isSelected = cat == _selectedCategory;
+                              return GestureDetector(
+                                onTap: () => setState(() => _selectedCategory = cat),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  margin: const EdgeInsets.only(right: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    gradient: isSelected ? const LinearGradient(colors: [AppColors.purple, AppColors.pink]) : null,
+                                    color: isSelected ? null : AppColors.bgCard,
+                                    border: Border.all(color: isSelected ? Colors.transparent : AppColors.borderSubtle),
+                                  ),
+                                  child: Text(cat, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? Colors.white : AppColors.textTertiary)),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(child: _buildTextField(_dateController, 'Tarih (ör: 15 Haziran 2025)', Icons.calendar_today_rounded)),
+                            const SizedBox(width: 10),
+                            Expanded(child: _buildTextField(_timeController, 'Saat (ör: 20:00)', Icons.access_time_rounded)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildTextField(_venueController, 'Mekan', Icons.location_on_rounded),
+                        const SizedBox(height: 12),
+                        _buildTextField(_cityController, 'Şehir', Icons.location_city_rounded),
+                        const SizedBox(height: 12),
+                        _buildTextField(_priceController, 'Başlangıç Fiyatı (₺)', Icons.payments_outlined, keyboardType: TextInputType.number),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(color: AppColors.bgCard, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.borderSubtle)),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Öne Çıkar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                                  Text('Ana sayfada büyük kart olarak göster', style: TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+                                ],
+                              ),
+                              Switch(
+                                value: _isFeatured,
+                                onChanged: (val) => setState(() => _isFeatured = val),
+                                activeColor: AppColors.purpleLight,
+                                activeTrackColor: AppColors.purple.withOpacity(0.4),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _isLoading
+                            ? const Center(child: CircularProgressIndicator(color: AppColors.purple))
+                            : GestureDetector(
+                                onTap: _createEvent,
+                                child: Container(
+                                  width: double.infinity,
+                                  height: 54,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    gradient: const LinearGradient(colors: [AppColors.purple, AppColors.purpleLight, AppColors.pink]),
+                                    boxShadow: [BoxShadow(color: AppColors.purple.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))],
+                                  ),
+                                  child: const Center(
+                                    child: Text('Etkinliği Yayınla', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  ),
+                                ),
+                              ),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, {int maxLines = 1, TextInputType keyboardType = TextInputType.text}) {
+    return Container(
+      decoration: BoxDecoration(color: AppColors.bgCard, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.borderSubtle)),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        keyboardType: keyboardType,
+        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
+          prefixIcon: Padding(padding: const EdgeInsets.only(bottom: 0), child: Icon(icon, color: AppColors.textTertiary, size: 20)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _createEvent() async {
+    if (_titleController.text.isEmpty || _priceController.text.isEmpty || _dateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen zorunlu alanları doldurun'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      await FirebaseFirestore.instance.collection('events').add({
+        'title': _titleController.text.trim(),
+        'description': _descController.text.trim(),
+        'category': _selectedCategory,
+        'date': _dateController.text.trim(),
+        'time': _timeController.text.trim(),
+        'venue': _venueController.text.trim(),
+        'city': _cityController.text.trim(),
+        'price': int.tryParse(_priceController.text.trim()) ?? 0,
+        'isFeatured': _isFeatured,
+        'organizerId': user?.uid ?? '',
+        'imageUrl': 'https://picsum.photos/seed/${_titleController.text}/400/200',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await FirebaseFirestore.instance.collection('logs').add({
+        'userId': user?.uid ?? '',
+        'action': 'event_created',
+        'eventTitle': _titleController.text.trim(),
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('🎉 Etkinlik yayınlandı!'),
+            backgroundColor: AppColors.purple,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        context.go('/discover');
       }
     } catch (e) {
       if (mounted) {

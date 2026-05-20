@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:etkinlik_app/features/discover/screens/discover_screen.dart';
 import 'package:etkinlik_app/features/tickets/screens/tickets_screen.dart';
 import 'package:etkinlik_app/features/profile/screens/profile_screen.dart';
+import 'package:etkinlik_app/features/organizer/screens/organizer_screen.dart';
 import 'package:etkinlik_app/shared/widgets/main_shell.dart';
 
 final appRouter = GoRouter(
@@ -24,6 +25,10 @@ final appRouter = GoRouter(
           builder: (context, state) => const ProfileScreen(),
         ),
       ],
+    ),
+    GoRoute(
+      path: '/organizer',
+      builder: (context, state) => const OrganizerScreen(),
     ),
   ],
 );
