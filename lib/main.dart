@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,10 +9,43 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'firebase_options.dart';
-import 'package:etkinlik_app/features/discover/screens/discover_screen.dart';
+import 'package:biletick/features/discover/screens/discover_screen.dart';
 
 // ── COLORS ──
 class AppColors {
+  static final _eventGradients = const [
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF7C3AED), Color(0xFFEC4899)]),
+    LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF2563EB), Color(0xFF06B6D4)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF97316), Color(0xFFEF4444)]),
+    LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomRight, colors: [Color(0xFF059669), Color(0xFF0D9488)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF4338CA), Color(0xFFA855F7)]),
+    LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFFEC4899), Color(0xFFF97316)]),
+    LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: [Color(0xFFE11D48), Color(0xFF7C3AED)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFD97706), Color(0xFFEC4899)]),
+    LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF0EA5E9), Color(0xFF8B5CF6)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF10B981), Color(0xFF3B82F6)]),
+    LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomLeft, colors: [Color(0xFFEF4444), Color(0xFFF97316)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF8B5CF6), Color(0xFF06B6D4)]),
+    LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF14B8A6), Color(0xFF22D3EE)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF43F5E), Color(0xFFEC4899)]),
+    LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF84CC16), Color(0xFF22C55E)]),
+    LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomRight, colors: [Color(0xFFEAB308), Color(0xFFF97316)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF0284C7), Color(0xFF0EA5E9)]),
+    LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF7C3AED), Color(0xFF4338CA)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF43F5E), Color(0xFFEF4444)]),
+    LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: [Color(0xFF0891B2), Color(0xFF059669)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFDB2777), Color(0xFF9333EA)]),
+    LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF1D4ED8), Color(0xFF7C3AED)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFDC2626), Color(0xFFD97706)]),
+    LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomLeft, colors: [Color(0xFF0D9488), Color(0xFF0284C7)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF9333EA), Color(0xFFEC4899)]),
+    LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFFF59E0B), Color(0xFF10B981)]),
+    LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF3B82F6), Color(0xFF14B8A6)]),
+  ];
+
+  static LinearGradient gradientForEvent(String id) =>
+      _eventGradients[id.hashCode.abs() % _eventGradients.length];
   static const bgPrimary = Color(0xFF060610);
   static const bgSecondary = Color(0xFF0F0F1E);
   static const bgCard = Color(0xFF0D0D22);
@@ -584,8 +618,12 @@ class _NavItem extends StatelessWidget {
 
 // ── ROUTER ──
 final _router = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/splash',
   routes: [
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
     GoRoute(
       path: '/login',
       builder: (context, state) => const LoginScreen(),
@@ -687,7 +725,7 @@ class EtkinlikApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Etkinlik',
+      title: 'Biletick',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -726,21 +764,32 @@ class EventDetailScreen extends StatelessWidget {
 
           return Stack(
             children: [
-              // Hero image
-              SizedBox(
-                height: 280,
-                width: double.infinity,
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) => _heroGradient(),
-                  errorWidget: (_, __, ___) => _heroGradient(),
+              // Hero: kart gradyentinden büyüyerek geçiş
+              Hero(
+                tag: 'hero-event-$eventId',
+                child: SizedBox(
+                  height: 280,
+                  width: double.infinity,
+                  child: imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(
+                            decoration: BoxDecoration(gradient: AppColors.gradientForEvent(eventId)),
+                          ),
+                          errorWidget: (_, __, ___) => Container(
+                            decoration: BoxDecoration(gradient: AppColors.gradientForEvent(eventId)),
+                          ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(gradient: AppColors.gradientForEvent(eventId)),
+                        ),
                 ),
               ),
               // Scrim: içeriğe geçiş
               Container(
                 height: 280,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -882,19 +931,7 @@ class EventDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _heroGradient() => Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.purple.withOpacity(0.9),
-              AppColors.pink.withOpacity(0.8),
-              AppColors.orange.withOpacity(0.6),
-            ],
-          ),
-        ),
-      );
+
 
   Widget _buildInfoChip(IconData icon, String text) {
     return Expanded(
@@ -1509,6 +1546,190 @@ class _OrganizerScreenState extends State<OrganizerScreen> {
   }
 }
 
+// ── LOGO WIDGET ──
+class _BiletickLogo extends StatelessWidget {
+  final double size;
+  const _BiletickLogo({this.size = 88});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(size, size),
+      painter: _LogoPainter(size),
+    );
+  }
+}
+
+class _LogoPainter extends CustomPainter {
+  final double size;
+  const _LogoPainter(this.size);
+
+  // [cx_norm, cy_norm, outerR_norm, innerR_norm, opacity]
+  static const _stars = [
+    [0.736, 0.250, 0.057, 0.023, 0.95], // büyük   sağ üst
+    [0.257, 0.296, 0.046, 0.018, 0.70], // orta    sol üst
+    [0.264, 0.729, 0.036, 0.014, 0.55], // orta    sol alt
+    [0.729, 0.729, 0.036, 0.014, 0.60], // küçük   sağ alt
+    [0.500, 0.186, 0.029, 0.011, 0.45], // tiny    üst orta
+    [0.500, 0.829, 0.029, 0.011, 0.40], // tiny    alt orta
+  ];
+
+  static Shader _shader(double s, [double opacity = 1.0]) =>
+      LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFF818CF8).withOpacity(opacity),
+          Color(0xFFF472B6).withOpacity(opacity),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, s, s));
+
+  @override
+  void paint(Canvas canvas, Size sz) {
+    final s = sz.width;
+    final center = Offset(s / 2, s / 2);
+    final radius = s * 0.357; // 50/140
+
+    // ── 1. Daire dolgu (opacity 0.15) ──
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..shader = _shader(s, 0.15)
+        ..style = PaintingStyle.fill,
+    );
+
+    // ── 2. Daire border (gradient stroke) ──
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..shader = _shader(s)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.011, // ~1.5 px @ 140
+    );
+
+    // ── 3. Yıldızlar ──
+    for (final star in _stars) {
+      canvas.drawPath(
+        _starPath(star[0] * s, star[1] * s, star[2] * s, star[3] * s),
+        Paint()
+          ..shader = _shader(s, star[4])
+          ..style = PaintingStyle.fill,
+      );
+    }
+
+    // ── 4. "ʙ" harfi — gradient, ortada ──
+    final tp = TextPainter(
+      textDirection: TextDirection.ltr,
+      text: TextSpan(
+        text: 'ʙ',
+        style: TextStyle(
+          fontSize: s * 0.64,
+          fontWeight: FontWeight.w900,
+          foreground: Paint()..shader = _shader(s),
+          height: 1.0,
+        ),
+      ),
+    )..layout();
+    tp.paint(
+      canvas,
+      Offset(s / 2 - tp.width / 2, s / 2 - tp.height / 2 + s * 0.02),
+    );
+  }
+
+  static Path _starPath(double cx, double cy, double outerR, double innerR) {
+    final path = Path();
+    for (var i = 0; i < 10; i++) {
+      final r = i.isEven ? outerR : innerR;
+      final angle = i * math.pi / 5 - math.pi / 2;
+      i == 0
+          ? path.moveTo(cx + r * math.cos(angle), cy + r * math.sin(angle))
+          : path.lineTo(cx + r * math.cos(angle), cy + r * math.sin(angle));
+    }
+    return path..close();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+// ── SPLASH SCREEN ──
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _navigate();
+  }
+
+  Future<void> _navigate() async {
+    await Future.delayed(const Duration(milliseconds: 1800));
+    if (!mounted) return;
+    final user = FirebaseAuth.instance.currentUser;
+    context.go(user != null ? '/discover' : '/login');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bgPrimary,
+      body: Stack(
+        children: [
+          Positioned(
+            top: -80, left: -60,
+            child: Container(
+              width: 300, height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [AppColors.purple.withOpacity(0.45), Colors.transparent]),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -60, right: -60,
+            child: Container(
+              width: 260, height: 260,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [AppColors.pink.withOpacity(0.35), Colors.transparent]),
+              ),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _BiletickLogo(size: 110),
+                const SizedBox(height: 20),
+                const Text(
+                  'Biletick',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Etkinlikleri keşfet, biletini al.',
+                  style: TextStyle(fontSize: 13, color: AppColors.textTertiary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── LOGIN SCREEN ──
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -1565,7 +1786,10 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 48),
+                  // Logo
+                  const Center(child: _BiletickLogo(size: 88)),
+                  const SizedBox(height: 24),
                   // Başlık
                   const Text(
                     'Tekrar\nhoş geldin.',

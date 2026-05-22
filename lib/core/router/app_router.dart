@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:etkinlik_app/features/discover/screens/discover_screen.dart';
-import 'package:etkinlik_app/features/tickets/screens/tickets_screen.dart';
-import 'package:etkinlik_app/features/profile/screens/profile_screen.dart';
-import 'package:etkinlik_app/features/organizer/screens/organizer_screen.dart';
-import 'package:etkinlik_app/shared/widgets/main_shell.dart';
+import 'package:biletick/features/discover/screens/discover_screen.dart';
+import 'package:biletick/features/tickets/screens/tickets_screen.dart';
+import 'package:biletick/features/profile/screens/profile_screen.dart';
+import 'package:biletick/features/organizer/screens/organizer_screen.dart';
+import 'package:biletick/shared/widgets/main_shell.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/discover',

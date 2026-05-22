@@ -214,208 +214,138 @@ class _FeaturedCard extends StatelessWidget {
   final DocumentSnapshot doc;
   const _FeaturedCard({required this.doc});
 
-  // Title'ın ilk karakterine göre 8 farklı gradient + yön kombinasyonu
-  static LinearGradient _gradientFor(String title) {
-    final code = title.isNotEmpty ? title.codeUnitAt(0) : 65;
-    switch (code % 8) {
-      case 0:
-        return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [Color(0xFF7C3AED), Color(0xFFEC4899)],
-        );
-      case 1:
-        return const LinearGradient(
-          begin: Alignment.topRight, end: Alignment.bottomLeft,
-          colors: [Color(0xFF2563EB), Color(0xFF06B6D4)],
-        );
-      case 2:
-        return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [Color(0xFFF97316), Color(0xFFEF4444)],
-        );
-      case 3:
-        return const LinearGradient(
-          begin: Alignment.topCenter, end: Alignment.bottomRight,
-          colors: [Color(0xFF059669), Color(0xFF0D9488)],
-        );
-      case 4:
-        return const LinearGradient(
-          begin: Alignment.topRight, end: Alignment.bottomLeft,
-          colors: [Color(0xFF4338CA), Color(0xFFA855F7)],
-        );
-      case 5:
-        return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [Color(0xFFEC4899), Color(0xFFF97316)],
-        );
-      case 6:
-        return const LinearGradient(
-          begin: Alignment.centerLeft, end: Alignment.centerRight,
-          colors: [Color(0xFFE11D48), Color(0xFF7C3AED)],
-        );
-      case 7:
-      default:
-        return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [Color(0xFFD97706), Color(0xFFEC4899)],
-        );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final data      = doc.data() as Map<String, dynamic>;
-    final title     = (data['title'] as String?) ?? '';
+    final data = doc.data() as Map<String, dynamic>;
+    final title = (data['title'] as String?) ?? '';
     final firstLetter = title.isNotEmpty ? title[0].toUpperCase() : '?';
-    final gradient  = _gradientFor(title);
+    final gradient = AppColors.gradientForEvent(doc.id);
 
     return GestureDetector(
       onTap: () => context.go('/event/${doc.id}'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        height: 160,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: gradient,
-          border: Border.all(color: Colors.white.withOpacity(0.12)),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Büyük harf — dekoratif arka plan
-            Positioned(
-              right: -12,
-              top: -16,
-              bottom: -16,
-              child: Text(
-                firstLetter,
-                style: TextStyle(
-                  fontSize: 180,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white.withOpacity(0.13),
-                  height: 1.0,
-                ),
-              ),
+      child: Hero(
+        tag: 'hero-event-${doc.id}',
+        child: Material(
+          type: MaterialType.transparency,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            height: 180,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: gradient,
             ),
-            // Sol alt köşeye hafif scrim — metin okunabilirliği
-            Positioned(
-              left: 0, right: 0, bottom: 0,
-              child: Container(
-                height: 100,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.5)],
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Dekoratif büyük harf arka planda
+                Positioned(
+                  right: -10,
+                  top: -20,
+                  bottom: -20,
+                  child: Text(
+                    firstLetter,
+                    style: const TextStyle(
+                      fontSize: 220,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0x1AFFFFFF),
+                      height: 1.0,
+                    ),
                   ),
                 ),
-              ),
-            ),
-            // İçerik
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Üst: kategori + fiyat
-                  Row(
+                // Alt scrim
+                Positioned(
+                  left: 0, right: 0, bottom: 0,
+                  child: Container(
+                    height: 120,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Color(0x99000000)],
+                      ),
+                    ),
+                  ),
+                ),
+                // İçerik
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.25)),
-                        ),
-                        child: Text(
-                          data['category'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700,
+                      // Üst: kategori + fiyat
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0x30FFFFFF),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0x40FFFFFF)),
+                            ),
+                            child: Text(
+                              data['category'] ?? '',
+                              style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700),
+                            ),
                           ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.35),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '₺${data['price']}+',
-                          style: const TextStyle(
-                            fontSize: 12, color: Colors.white, fontWeight: FontWeight.w800,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0x55000000),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '₺${data['price']}+',
+                              style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w800),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                  // Alt: büyük harf monogram + başlık + tarih/mekan
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Ön planda küçük monogram kutusu
-                      Container(
-                        width: 44, height: 44,
-                        margin: const EdgeInsets.only(right: 10, bottom: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white.withOpacity(0.3)),
-                        ),
-                        child: Center(
-                          child: Text(
-                            firstLetter,
+                      // Alt: büyük bold başlık + tarih/mekan
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            title,
                             style: const TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.w900,
-                              color: Colors.white, height: 1.0,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -0.6,
+                              height: 1.1,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              title,
-                              style: const TextStyle(
-                                fontSize: 17, fontWeight: FontWeight.w800,
-                                color: Colors.white, letterSpacing: -0.4, height: 1.15,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.calendar_today_rounded, size: 11, color: Colors.white70),
-                                const SizedBox(width: 3),
-                                Text(data['date'] ?? '', style: const TextStyle(fontSize: 11, color: Colors.white70)),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.location_on_rounded, size: 11, color: Colors.white70),
-                                const SizedBox(width: 3),
-                                Expanded(
-                                  child: Text(
-                                    data['venue'] ?? '',
-                                    style: const TextStyle(fontSize: 11, color: Colors.white70),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today_rounded, size: 11, color: Color(0xBBFFFFFF)),
+                              const SizedBox(width: 3),
+                              Text(data['date'] ?? '', style: const TextStyle(fontSize: 11, color: Color(0xBBFFFFFF))),
+                              const SizedBox(width: 10),
+                              const Icon(Icons.location_on_rounded, size: 11, color: Color(0xBBFFFFFF)),
+                              const SizedBox(width: 3),
+                              Expanded(
+                                child: Text(
+                                  data['venue'] ?? '',
+                                  style: const TextStyle(fontSize: 11, color: Color(0xBBFFFFFF)),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -429,11 +359,15 @@ class _RegularCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = doc.data() as Map<String, dynamic>;
+    final title = (data['title'] as String?) ?? '';
+    final firstLetter = title.isNotEmpty ? title[0].toUpperCase() : '?';
+    final gradient = AppColors.gradientForEvent(doc.id);
+
     return GestureDetector(
       onTap: () => context.go('/event/${doc.id}'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppColors.bgCard,
           borderRadius: BorderRadius.circular(16),
@@ -441,60 +375,102 @@ class _RegularCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 56, height: 56,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [AppColors.purple.withOpacity(0.6), AppColors.pink.withOpacity(0.6)],
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  (data['title'] as String? ?? '?')[0],
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
+            // Sol: 60x60 gradient kutu — hero kaynağı
+            Hero(
+              tag: 'hero-event-${doc.id}',
+              child: Material(
+                type: MaterialType.transparency,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: gradient,
+                  ),
+                  child: Center(
+                    child: Text(
+                      firstLetter,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        height: 1.0,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
+            // Orta: bilgiler
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    data['title'] ?? '',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      letterSpacing: -0.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${data['date']} · ${data['venue']}',
-                    style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                    data['venue'] ?? '',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.purple.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      data['category'] ?? '',
-                      style: const TextStyle(fontSize: 10, color: AppColors.purpleLight, fontWeight: FontWeight.w600),
-                    ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0x26A855F7),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0x40A855F7)),
+                        ),
+                        child: Text(
+                          data['category'] ?? '',
+                          style: const TextStyle(fontSize: 10, color: AppColors.purpleLight, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.access_time_rounded, size: 10, color: AppColors.textTertiary),
+                      const SizedBox(width: 3),
+                      Text(
+                        data['date'] ?? '',
+                        style: const TextStyle(fontSize: 10, color: AppColors.textTertiary),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
+            // Sağ: fiyat + ok
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   '₺${data['price']}',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.purpleLight),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.purpleLight),
                 ),
-                const SizedBox(height: 4),
-                const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppColors.textTertiary),
+                const SizedBox(height: 6),
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: const Color(0x207C3AED),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.arrow_forward_ios_rounded, size: 11, color: AppColors.purpleLight),
+                ),
               ],
             ),
           ],
