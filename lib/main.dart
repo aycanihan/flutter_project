@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -275,8 +277,42 @@ class _TicketsScreenState extends State<TicketsScreen> {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isOrganizer = false;
+  StreamSubscription<DocumentSnapshot>? _roleSub;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) _subscribeRole(uid);
+  }
+
+  void _subscribeRole(String uid) {
+    _roleSub?.cancel();
+    _roleSub = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .listen((doc) {
+      if (!mounted) return;
+      final data = doc.data();
+      final roleValue = data?['role'];
+      setState(() => _isOrganizer = roleValue is String && roleValue == 'organizer');
+    });
+  }
+
+  @override
+  void dispose() {
+    _roleSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -284,6 +320,7 @@ class ProfileScreen extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
         final user = authSnapshot.data;
+        if (user != null && _roleSub == null) _subscribeRole(user.uid);
 
         return Scaffold(
           backgroundColor: AppColors.bgPrimary,
@@ -323,34 +360,27 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       // Rol badge
-                      FutureBuilder<DocumentSnapshot>(
-                        future: user != null ? FirebaseFirestore.instance.collection('users').doc(user.uid).get() : null,
-                        builder: (context, snapshot) {
-                          final role = (snapshot.data?.data() as Map?)?['role'] ?? 'user';
-                          final isOrganizer = role == 'organizer';
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              gradient: isOrganizer
-                                  ? const LinearGradient(colors: [AppColors.purple, AppColors.pink])
-                                  : null,
-                              color: isOrganizer ? null : AppColors.bgCard,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: isOrganizer ? Colors.transparent : AppColors.borderLight),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          gradient: _isOrganizer
+                              ? const LinearGradient(colors: [AppColors.purple, AppColors.pink])
+                              : null,
+                          color: _isOrganizer ? null : AppColors.bgCard,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _isOrganizer ? Colors.transparent : AppColors.borderLight),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_isOrganizer ? Icons.event : Icons.person_outline_rounded, size: 14, color: _isOrganizer ? Colors.white : AppColors.textTertiary),
+                            const SizedBox(width: 6),
+                            Text(
+                              _isOrganizer ? 'Organizatör' : 'Katılımcı',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _isOrganizer ? Colors.white : AppColors.textTertiary),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(isOrganizer ? Icons.event : Icons.person_outline_rounded, size: 14, color: isOrganizer ? Colors.white : AppColors.textTertiary),
-                                const SizedBox(width: 6),
-                                Text(
-                                  isOrganizer ? 'Organizatör' : 'Katılımcı',
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isOrganizer ? Colors.white : AppColors.textTertiary),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 28),
                       // İstatistikler
@@ -380,8 +410,10 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 24),
                       // Menü öğeleri
                       _buildMenuItem(Icons.confirmation_number_outlined, 'Biletlerim', 'Satın aldığın biletler', () => context.go('/tickets')),
-                      const SizedBox(height: 10),
-                      _buildMenuItem(Icons.add_circle_outline_rounded, 'Etkinlik Oluştur', 'Yeni etkinlik yayınla', () => context.go('/organizer')),
+                      if (_isOrganizer) ...[
+                        const SizedBox(height: 10),
+                        _buildMenuItem(Icons.add_circle_outline_rounded, 'Etkinlik Oluştur', 'Yeni etkinlik yayınla', () => context.go('/organizer')),
+                      ],
                       const SizedBox(height: 10),
                       _buildMenuItem(Icons.history_rounded, 'İşlem Geçmişi', 'Tüm aktiviteler', () {}),
                       const SizedBox(height: 10),
@@ -690,24 +722,22 @@ class EventDetailScreen extends StatelessWidget {
 
           final data = snapshot.data!.data() as Map<String, dynamic>;
 
+          final imageUrl = data['imageUrl'] as String? ?? '';
+
           return Stack(
             children: [
-              // Gradient hero
-              Container(
+              // Hero image
+              SizedBox(
                 height: 280,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.purple.withOpacity(0.9),
-                      AppColors.pink.withOpacity(0.8),
-                      AppColors.orange.withOpacity(0.6),
-                    ],
-                  ),
+                width: double.infinity,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => _heroGradient(),
+                  errorWidget: (_, __, ___) => _heroGradient(),
                 ),
               ),
-              // Grid doku
+              // Scrim: içeriğe geçiş
               Container(
                 height: 280,
                 decoration: BoxDecoration(
@@ -851,6 +881,20 @@ class EventDetailScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _heroGradient() => Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.purple.withOpacity(0.9),
+              AppColors.pink.withOpacity(0.8),
+              AppColors.orange.withOpacity(0.6),
+            ],
+          ),
+        ),
+      );
 
   Widget _buildInfoChip(IconData icon, String text) {
     return Expanded(
