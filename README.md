@@ -39,8 +39,4 @@ https://youtu.be/wm52hfbbRBs
 ---
 
 ## Ekran Görüntüleri
-/screenshots_biletic dosyasının içinde.
-
-![Keşfet](screenshots/discover.png)
-![Biletlerim](screenshots/tickets.png)
-![Profil](screenshots/profile.png)
+/screenshots_biletic dosyasının içinde hem app'in ekran görüntüleri hem de commit geçmişinin ekran resmi bulunmakta.
